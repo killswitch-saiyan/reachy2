@@ -71,12 +71,123 @@ class ReachyController:
         try:
             logger.info(f"Connecting to Reachy2 at {self.host}:{self.port}")
             self.reachy = ReachySDK(host=self.host)
-            self.connected = True
-            logger.info("Successfully connected to Reachy2")
-            return True
+            
+            # Test connection with timeout
+            import time
+            logger.info("Testing connection...")
+            time.sleep(2)
+            
+            # Try to get robot info to verify connection
+            try:
+                info = self.reachy.info
+                logger.info(f"Robot info: {info}")
+                self.connected = True
+                logger.info("Successfully connected to Reachy2")
+                return True
+            except Exception as conn_test_error:
+                logger.error(f"Connection test failed: {conn_test_error}")
+                return False
         except Exception as e:
             logger.error(f"Failed to connect to Reachy2: {e}")
             self.connected = False
+            return False
+    
+    def perform_intro_setup(self, speed: str = "medium") -> bool:
+        """
+        Perform intro setup sequence: head down -> turn on -> head up
+        
+        Args:
+            speed: Animation speed ("slow", "medium", "fast")
+            
+        Returns:
+            bool: True if intro successful
+        """
+        if not self.connected or not self.reachy:
+            logger.error("Not connected to robot")
+            return False
+        
+        try:
+            logger.info("Starting Reachy2 intro setup sequence...")
+            
+            # Set movement durations based on speed
+            duration_map = {
+                "slow": 3.0,
+                "medium": 2.0, 
+                "fast": 1.0
+            }
+            move_duration = duration_map.get(speed, 2.0)
+            
+            # Step 1: Turn on head only (for initial positioning)
+            logger.info("Turning on head for positioning...")
+            self.reachy.head.turn_on()
+            time.sleep(1)
+            
+            # Step 2: Move head to "down" position
+            logger.info("Moving head to down position...")
+            # Look down: forward and significantly down
+            self.reachy.head.look_at(x=0.3, y=0, z=-0.4, duration=move_duration, wait=True)
+            time.sleep(0.5)
+            
+            # Step 3: Turn on full robot
+            logger.info("Turning on full robot...")
+            self.reachy.turn_on()
+            time.sleep(1)
+            
+            # Step 4: Graceful head movement to up/forward position
+            logger.info("Moving head to greeting position...")
+            # Look forward and slightly up for a welcoming pose
+            self.reachy.head.look_at(x=0.5, y=0, z=0.1, duration=move_duration, wait=True)
+            
+            # Step 5: Optional antenna greeting
+            logger.info("Adding personality with antenna movement...")
+            # Subtle antenna movement for personality
+            self.reachy.head.l_antenna.goto(10, duration=0.8)
+            self.reachy.head.r_antenna.goto(-10, duration=0.8) 
+            time.sleep(1)
+            
+            # Return antennas to neutral
+            self.reachy.head.l_antenna.goto(0, duration=0.8)
+            self.reachy.head.r_antenna.goto(0, duration=0.8)
+            time.sleep(1)
+            
+            logger.info("✨ Intro setup sequence completed successfully!")
+            print("\n🤖 Hello! Reachy2 is ready for action!")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Intro setup failed: {e}")
+            return False
+    
+    def reset_to_down_position(self) -> bool:
+        """
+        Reset robot to head-down starting position
+        
+        Returns:
+            bool: True if reset successful
+        """
+        if not self.connected or not self.reachy:
+            logger.error("Not connected to robot")
+            return False
+            
+        try:
+            logger.info("Resetting to head-down position...")
+            
+            # Turn on head if not already on
+            if not self.reachy.head.is_on():
+                self.reachy.head.turn_on()
+                time.sleep(1)
+            
+            # Move to down position
+            self.reachy.head.look_at(x=0.3, y=0, z=-0.4, duration=2.0, wait=True)
+            
+            # Turn off robot but keep head position
+            self.reachy.turn_off_smoothly()
+            
+            logger.info("Reset to down position completed")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Reset to down position failed: {e}")
             return False
     
     def disconnect(self):

@@ -9,6 +9,8 @@ import numpy as np
 from main import ReachyController
 from pyquaternion import Quaternion
 from reachy2_sdk.utils.utils import get_pose_matrix
+from rviz_scene_manager import RVizSceneManager
+from gazebo_scene_manager import GazeboSceneManager
 
 def print_menu():
     """Print the interactive menu"""
@@ -32,7 +34,12 @@ def print_menu():
     print("15. Arm kinematics demo")
     print("16. Audio recording and playback")
     print("17. Audio file management")
-    print("18. Quit")
+    print("18. Perform intro setup (head down -> up)")
+    print("19. Reset to head-down position") 
+    print("20. RViz Scene manager (create/clear scenes)")
+    print("21. Gazebo Scene manager (spawn/remove objects)")
+    print("22. Object interaction demo")
+    print("23. Quit")
     print("-"*50)
 
 def demo_head_movement(controller):
@@ -491,6 +498,272 @@ def demo_audio_management(controller):
         except Exception as e:
             print(f"Error: {e}")
 
+def demo_intro_setup(controller):
+    """Demonstrate the intro setup sequence"""
+    print("\nIntro Setup Demo")
+    print("This will perform the full intro sequence:")
+    print("1. Head moves down")
+    print("2. Robot turns on") 
+    print("3. Head looks up gracefully")
+    print("4. Antenna greeting movement")
+    
+    # Speed selection
+    print("\nChoose animation speed:")
+    print("1. Slow (3 seconds per movement)")
+    print("2. Medium (2 seconds per movement)")  
+    print("3. Fast (1 second per movement)")
+    
+    speed_choice = input("Enter choice (1-3, default: 2): ").strip()
+    speed_map = {"1": "slow", "2": "medium", "3": "fast"}
+    speed = speed_map.get(speed_choice, "medium")
+    
+    print(f"\nStarting intro setup sequence at {speed} speed...")
+    print("Watch the robot at http://localhost:6080/vnc.html")
+    
+    if controller.perform_intro_setup(speed):
+        print("[SUCCESS] Intro setup completed! Reachy2 is ready!")
+    else:
+        print("[FAILED] Intro setup failed")
+
+def demo_reset_position(controller):
+    """Reset robot to head-down starting position"""
+    print("\nResetting to Head-Down Position")
+    print("This will move the robot back to the starting position (head down)")
+    
+    confirm = input("Continue? (y/n): ").strip().lower()
+    if confirm not in ['y', 'yes']:
+        print("Reset cancelled")
+        return
+    
+    print("Resetting robot to head-down position...")
+    if controller.reset_to_down_position():
+        print("[SUCCESS] Robot reset to head-down position")
+    else:
+        print("[FAILED] Reset failed")
+
+def demo_scene_manager(controller):
+    """Demonstrate RViz scene management"""
+    print("\nRViz Scene Manager")
+    print("Create visual scenes inspired by MuJoCo assets")
+    print("Enhanced with 3D marker publishing for RViz visualization")
+    
+    # Initialize scene manager
+    scene_manager = RVizSceneManager(controller.reachy)
+    
+    while True:
+        print("\n--- Scene Manager Menu ---")
+        print("1. Create Base Scene (empty floor)")
+        print("2. Create Table Scene (table + red box)")  
+        print("3. Create Fruits Scene (apples, oranges, table)")
+        print("4. Create Kitchen Scene (counter, tools)")
+        print("5. Show Current Scene")
+        print("6. List Available Scenes")
+        print("7. Clear Scene")
+        print("8. Back to Main Menu")
+        
+        choice = input("Enter choice (1-8): ").strip()
+        
+        try:
+            if choice == '1':
+                if scene_manager.create_base_scene():
+                    print("[SUCCESS] Base scene created!")
+                else:
+                    print("[FAILED] Failed to create base scene")
+            
+            elif choice == '2':
+                if scene_manager.create_table_scene():
+                    print("[SUCCESS] Table scene created!")
+                else:
+                    print("[FAILED] Failed to create table scene")
+            
+            elif choice == '3':
+                if scene_manager.create_fruits_scene():
+                    print("[SUCCESS] Fruits scene created!")
+                else:
+                    print("[FAILED] Failed to create fruits scene")
+            
+            elif choice == '4':
+                if scene_manager.create_kitchen_scene():
+                    print("[SUCCESS] Kitchen scene created!")
+                else:
+                    print("[FAILED] Failed to create kitchen scene")
+            
+            elif choice == '5':
+                current = scene_manager.get_current_scene()
+                if current:
+                    scene_manager._display_scene_info(current)
+                else:
+                    print("No scene currently loaded")
+            
+            elif choice == '6':
+                scenes = scene_manager.list_available_scenes()
+                print("Available scenes:")
+                for i, scene in enumerate(scenes, 1):
+                    print(f"  {i}. {scene}")
+            
+            elif choice == '7':
+                if scene_manager.clear_scene():
+                    print("[SUCCESS] Scene cleared!")
+                else:
+                    print("[FAILED] Failed to clear scene")
+            
+            elif choice == '8':
+                break
+            
+            else:
+                print("Invalid choice. Please enter 1-8.")
+                
+        except Exception as e:
+            print(f"Error: {e}")
+
+def demo_gazebo_scene_manager(controller):
+    """Demonstrate Gazebo scene management"""
+    print("\nGazebo Scene Manager")
+    print("Spawn 3D objects directly in Gazebo simulation")
+    print("Objects will appear as actual 3D models with physics")
+    
+    # Get Docker container name
+    docker_name = input("Enter Docker container name (default: reachy2_mujoco): ").strip()
+    if not docker_name:
+        docker_name = "reachy2_mujoco"
+    
+    # Initialize scene manager
+    scene_manager = GazeboSceneManager(controller.reachy, docker_name)
+    
+    while True:
+        print("\n--- Gazebo Scene Manager Menu ---")
+        print("1. Create Table Scene (table + red box)")  
+        print("2. Create Fruits Scene (apples, oranges, table)")
+        print("3. Create Kitchen Scene (counter, tools)")
+        print("4. Show Current Scene")
+        print("5. List Available Scenes")
+        print("6. List Spawned Objects")
+        print("7. Clear Scene (remove all objects)")
+        print("8. Back to Main Menu")
+        
+        choice = input("Enter choice (1-8): ").strip()
+        
+        try:
+            if choice == '1':
+                if scene_manager.create_table_scene():
+                    print("[SUCCESS] Table scene objects spawned in Gazebo!")
+                else:
+                    print("[FAILED] Failed to create table scene")
+            
+            elif choice == '2':
+                if scene_manager.create_fruits_scene():
+                    print("[SUCCESS] Fruits scene objects spawned in Gazebo!")
+                else:
+                    print("[FAILED] Failed to create fruits scene")
+            
+            elif choice == '3':
+                if scene_manager.create_kitchen_scene():
+                    print("[SUCCESS] Kitchen scene objects spawned in Gazebo!")
+                else:
+                    print("[FAILED] Failed to create kitchen scene")
+            
+            elif choice == '4':
+                current = scene_manager.get_current_scene()
+                if current:
+                    scene_manager._display_scene_info(current)
+                else:
+                    print("No scene currently loaded")
+            
+            elif choice == '5':
+                scenes = scene_manager.list_available_scenes()
+                print("Available scenes:")
+                for i, scene in enumerate(scenes, 1):
+                    print(f"  {i}. {scene}")
+            
+            elif choice == '6':
+                spawned = scene_manager.get_spawned_objects()
+                print("Currently spawned objects:")
+                if spawned:
+                    for i, obj in enumerate(spawned, 1):
+                        print(f"  {i}. {obj}")
+                else:
+                    print("  No objects currently spawned")
+            
+            elif choice == '7':
+                if scene_manager.clear_scene():
+                    print("[SUCCESS] Scene cleared! Objects removed from Gazebo")
+                else:
+                    print("[FAILED] Failed to clear scene")
+            
+            elif choice == '8':
+                break
+            
+            else:
+                print("Invalid choice. Please enter 1-8.")
+                
+        except Exception as e:
+            print(f"Error: {e}")
+
+def demo_object_interaction(controller):
+    """Demonstrate object interaction with scene objects"""
+    print("\nObject Interaction Demo")
+    print("Interact with objects in the current scene")
+    
+    # Initialize scene manager
+    scene_manager = RVizSceneManager(controller.reachy)
+    
+    # Check if scene is loaded
+    current_scene = scene_manager.get_current_scene()
+    if not current_scene:
+        print("No scene loaded. Creating fruits scene...")
+        if not scene_manager.create_fruits_scene():
+            print("Failed to create scene")
+            return
+        current_scene = scene_manager.get_current_scene()
+    
+    print(f"\nCurrent Scene: {current_scene['name']}")
+    print("Available objects to interact with:")
+    
+    objects = current_scene['objects']
+    for i, obj in enumerate(objects, 1):
+        pos = obj['position']
+        print(f"  {i}. {obj['name']} ({obj['type']}) at ({pos[0]:.2f}, {pos[1]:.2f}, {pos[2]:.2f})")
+    
+    while True:
+        print("\n--- Interaction Menu ---")
+        print("1. Pick up object")
+        print("2. Point at object") 
+        print("3. Push object")
+        print("4. Show scene objects")
+        print("5. Back to Main Menu")
+        
+        choice = input("Enter choice (1-5): ").strip()
+        
+        if choice == '1':
+            obj_name = input("Enter object name to pick up: ").strip()
+            if scene_manager.simulate_object_interaction(obj_name, "pick"):
+                print("[SUCCESS] Pick up simulation completed!")
+            else:
+                print("[FAILED] Pick up simulation failed")
+        
+        elif choice == '2':
+            obj_name = input("Enter object name to point at: ").strip()
+            if scene_manager.simulate_object_interaction(obj_name, "point"):
+                print("[SUCCESS] Pointing simulation completed!")
+            else:
+                print("[FAILED] Pointing simulation failed")
+        
+        elif choice == '3':
+            obj_name = input("Enter object name to push: ").strip()
+            if scene_manager.simulate_object_interaction(obj_name, "push"):
+                print("[SUCCESS] Push simulation completed!")
+            else:
+                print("[FAILED] Push simulation failed")
+        
+        elif choice == '4':
+            scene_manager._display_scene_info(current_scene)
+        
+        elif choice == '5':
+            break
+        
+        else:
+            print("Invalid choice. Please enter 1-5.")
+
 def move_specific_joint(controller):
     """Allow user to move a specific joint"""
     print("\nAvailable parts: r_arm, l_arm, head")
@@ -547,23 +820,40 @@ def main():
     controller = ReachyController(host="localhost")
     
     try:
-        # Connect to robot
-        if not controller.connect():
+        print("Connecting to Reachy2 MuJoCo simulation...")
+        print("(This may take 30-60 seconds for MuJoCo to initialize)")
+        
+        # Connect to robot with retries for MuJoCo
+        max_retries = 3
+        for attempt in range(max_retries):
+            if controller.connect():
+                break
+            if attempt < max_retries - 1:
+                print(f"Connection attempt {attempt + 1} failed, retrying in 10 seconds...")
+                import time
+                time.sleep(10)
+        else:
             print("[ERROR] Failed to connect to Reachy2. Check if simulation is running at localhost:6080")
             return
         
         print("[SUCCESS] Connected to Reachy2 successfully!")
         
-        # Turn on the robot so movements are visible
-        print("Turning on robot...")
-        controller.reachy.turn_on()
-        print("[SUCCESS] Robot turned on!")
+        # Ask user if they want to perform intro setup
+        intro_choice = input("Would you like to perform the intro setup? (y/n): ").strip().lower()
+        if intro_choice in ['y', 'yes']:
+            print("Performing intro setup...")
+            controller.perform_intro_setup("medium")
+        else:
+            # Turn on the robot so movements are visible
+            print("Turning on robot...")
+            controller.reachy.turn_on()
+            print("[SUCCESS] Robot turned on!")
         
         while True:
             print_menu()
             
             try:
-                choice = input("Enter your choice (1-8): ").strip()
+                choice = input("Enter your choice (1-23): ").strip()
                 
                 if choice == '1':
                     print("\n--- Robot Status ---")
@@ -642,11 +932,26 @@ def main():
                     demo_audio_management(controller)
                 
                 elif choice == '18':
+                    demo_intro_setup(controller)
+                
+                elif choice == '19':
+                    demo_reset_position(controller)
+                
+                elif choice == '20':
+                    demo_scene_manager(controller)
+                
+                elif choice == '21':
+                    demo_gazebo_scene_manager(controller)
+                
+                elif choice == '22':
+                    demo_object_interaction(controller)
+                
+                elif choice == '23':
                     print("\nExiting demo...")
                     break
                 
                 else:
-                    print("Invalid choice. Please enter 1-18.")
+                    print("Invalid choice. Please enter 1-23.")
                     
             except KeyboardInterrupt:
                 print("\n\nExiting demo...")
