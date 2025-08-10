@@ -30,7 +30,9 @@ def print_menu():
     print("13. Gripper control (open/close)")
     print("14. Arm cartesian movement demo")
     print("15. Arm kinematics demo")
-    print("16. Quit")
+    print("16. Audio recording and playback")
+    print("17. Audio file management")
+    print("18. Quit")
     print("-"*50)
 
 def demo_head_movement(controller):
@@ -309,6 +311,186 @@ def demo_arm_kinematics(controller):
     arm.goto_posture('default', wait=True)
     print("[SUCCESS] Kinematics demo completed")
 
+def demo_audio_recording(controller):
+    """Demonstrate voice recording and playback"""
+    print("\nAudio Recording and Playback Demo")
+    print("This will record your voice and play it back!")
+    
+    # Show available audio files first
+    print("\n--- Current Audio Files ---")
+    try:
+        files = controller.reachy.audio.get_audio_files()
+        if files:
+            for i, file in enumerate(files, 1):
+                print(f"{i}. {file}")
+        else:
+            print("No audio files found")
+    except Exception as e:
+        print(f"Error getting audio files: {e}")
+        return
+    
+    print("\n--- Recording Your Voice ---")
+    duration = input("Enter recording duration in seconds (default: 5): ").strip()
+    try:
+        duration = int(duration) if duration else 5
+    except ValueError:
+        duration = 5
+    
+    filename = input("Enter filename for recording (default: my_voice.ogg): ").strip()
+    if not filename:
+        filename = "my_voice.ogg"
+    if not filename.endswith('.ogg'):
+        filename += '.ogg'
+    
+    print(f"Recording '{filename}' for {duration} seconds...")
+    print("Start speaking now!")
+    
+    try:
+        controller.reachy.audio.record_audio(filename, duration_secs=duration)
+        
+        # Wait for recording to complete
+        import time
+        time.sleep(duration + 1)  # Wait a bit extra to ensure recording is complete
+        
+        print(f"[SUCCESS] Recording completed: {filename}")
+        
+        # Check if file actually exists
+        try:
+            files = controller.reachy.audio.get_audio_files()
+            if filename in files:
+                print(f"✓ File '{filename}' confirmed in robot's storage")
+            else:
+                print(f"✗ File '{filename}' NOT found in robot's storage")
+                print(f"Available files: {files}")
+                return
+        except Exception as e:
+            print(f"Error checking files: {e}")
+            return
+        
+        # Ask if user wants to play it back
+        play_back = input("Do you want to play back the recording? (y/n): ").strip().lower()
+        
+        if play_back in ['y', 'yes']:
+            print("Playing back your recording...")
+            controller.reachy.audio.play_audio_file(filename)
+            
+            # Wait and ask if they want to stop
+            time.sleep(2)
+            stop = input("Press Enter to stop playback or wait for it to finish...")
+            controller.reachy.audio.stop_playing()
+            print("Playback stopped")
+        
+        # Ask if they want to download the file
+        download = input("Do you want to download the file? (y/n): ").strip().lower()
+        if download in ['y', 'yes']:
+            download_path = input("Enter download path (default: C:/): ").strip()
+            if not download_path:
+                download_path = "C:/"
+            
+            try:
+                controller.reachy.audio.download_audio_file(filename, download_path)
+                print(f"[SUCCESS] File downloaded to {download_path}")
+            except Exception as e:
+                print(f"Download failed: {e}")
+        
+    except Exception as e:
+        print(f"Recording failed: {e}")
+
+def demo_audio_management(controller):
+    """Demonstrate audio file management"""
+    print("\nAudio File Management")
+    
+    while True:
+        print("\n--- Audio Management Menu ---")
+        print("1. List audio files")
+        print("2. Upload audio file")
+        print("3. Play audio file")
+        print("4. Stop playback")
+        print("5. Remove audio file")
+        print("6. Download audio file")
+        print("7. Back to main menu")
+        
+        choice = input("Enter your choice (1-7): ").strip()
+        
+        try:
+            if choice == '1':
+                print("\n--- Available Audio Files ---")
+                files = controller.reachy.audio.get_audio_files()
+                if files:
+                    for i, file in enumerate(files, 1):
+                        print(f"{i}. {file}")
+                else:
+                    print("No audio files found")
+            
+            elif choice == '2':
+                file_path = input("Enter full path to audio file: ").strip()
+                controller.reachy.audio.upload_audio_file(file_path)
+                print("[SUCCESS] File uploaded successfully")
+            
+            elif choice == '3':
+                files = controller.reachy.audio.get_audio_files()
+                if not files:
+                    print("No audio files available")
+                    continue
+                
+                print("Available files:")
+                for i, file in enumerate(files, 1):
+                    print(f"{i}. {file}")
+                
+                file_choice = input("Enter filename to play: ").strip()
+                controller.reachy.audio.play_audio_file(file_choice)
+                print(f"Playing {file_choice}...")
+            
+            elif choice == '4':
+                controller.reachy.audio.stop_playing()
+                print("Playback stopped")
+            
+            elif choice == '5':
+                files = controller.reachy.audio.get_audio_files()
+                if not files:
+                    print("No audio files to remove")
+                    continue
+                
+                print("Available files:")
+                for i, file in enumerate(files, 1):
+                    print(f"{i}. {file}")
+                
+                file_to_remove = input("Enter filename to remove: ").strip()
+                confirm = input(f"Are you sure you want to remove '{file_to_remove}'? (y/n): ").strip().lower()
+                
+                if confirm in ['y', 'yes']:
+                    controller.reachy.audio.remove_audio_file(file_to_remove)
+                    print(f"[SUCCESS] Removed {file_to_remove}")
+                else:
+                    print("Removal cancelled")
+            
+            elif choice == '6':
+                files = controller.reachy.audio.get_audio_files()
+                if not files:
+                    print("No audio files to download")
+                    continue
+                
+                print("Available files:")
+                for i, file in enumerate(files, 1):
+                    print(f"{i}. {file}")
+                
+                file_to_download = input("Enter filename to download: ").strip()
+                download_path = input("Enter download path (default: C:/): ").strip()
+                if not download_path:
+                    download_path = "C:/"
+                
+                controller.reachy.audio.download_audio_file(file_to_download, download_path)
+                print(f"[SUCCESS] Downloaded {file_to_download} to {download_path}")
+            
+            elif choice == '7':
+                break
+            
+            else:
+                print("Invalid choice. Please enter 1-7.")
+                
+        except Exception as e:
+            print(f"Error: {e}")
+
 def move_specific_joint(controller):
     """Allow user to move a specific joint"""
     print("\nAvailable parts: r_arm, l_arm, head")
@@ -454,11 +636,17 @@ def main():
                     demo_arm_kinematics(controller)
                 
                 elif choice == '16':
+                    demo_audio_recording(controller)
+                
+                elif choice == '17':
+                    demo_audio_management(controller)
+                
+                elif choice == '18':
                     print("\nExiting demo...")
                     break
                 
                 else:
-                    print("Invalid choice. Please enter 1-16.")
+                    print("Invalid choice. Please enter 1-18.")
                     
             except KeyboardInterrupt:
                 print("\n\nExiting demo...")
