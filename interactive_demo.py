@@ -11,6 +11,8 @@ from pyquaternion import Quaternion
 from reachy2_sdk.utils.utils import get_pose_matrix
 from rviz_scene_manager import RVizSceneManager
 from gazebo_scene_manager import GazeboSceneManager
+from mime_performance import demo_mime_performance
+from audio import demo_audio_system
 
 def print_menu():
     """Print the interactive menu"""
@@ -32,14 +34,16 @@ def print_menu():
     print("13. Gripper control (open/close)")
     print("14. Arm cartesian movement demo")
     print("15. Arm kinematics demo")
-    print("16. Audio recording and playback")
-    print("17. Audio file management")
-    print("18. Perform intro setup (head down -> up)")
-    print("19. Reset to head-down position") 
-    print("20. RViz Scene manager (create/clear scenes)")
-    print("21. Gazebo Scene manager (spawn/remove objects)")
-    print("22. Object interaction demo")
-    print("23. Quit")
+    print("16. Enhanced Audio System (NEW)")
+    print("17. Audio recording and playback (Legacy)")
+    print("18. Audio file management (Legacy)")
+    print("19. Perform intro setup (head down -> up)")
+    print("20. Reset to head-down position") 
+    print("21. RViz Scene manager (create/clear scenes)")
+    print("22. Gazebo Scene manager (spawn/remove objects)")
+    print("23. Object interaction demo")
+    print("24. Mime Performance (Invisible Rope & Wall)")
+    print("25. Quit")
     print("-"*50)
 
 def demo_head_movement(controller):
@@ -853,7 +857,7 @@ def main():
             print_menu()
             
             try:
-                choice = input("Enter your choice (1-23): ").strip()
+                choice = input("Enter your choice (1-25): ").strip()
                 
                 if choice == '1':
                     print("\n--- Robot Status ---")
@@ -926,32 +930,38 @@ def main():
                     demo_arm_kinematics(controller)
                 
                 elif choice == '16':
-                    demo_audio_recording(controller)
+                    demo_audio_system(controller)
                 
                 elif choice == '17':
-                    demo_audio_management(controller)
+                    demo_audio_recording(controller)
                 
                 elif choice == '18':
-                    demo_intro_setup(controller)
+                    demo_audio_management(controller)
                 
                 elif choice == '19':
-                    demo_reset_position(controller)
+                    demo_intro_setup(controller)
                 
                 elif choice == '20':
-                    demo_scene_manager(controller)
+                    demo_reset_position(controller)
                 
                 elif choice == '21':
-                    demo_gazebo_scene_manager(controller)
+                    demo_scene_manager(controller)
                 
                 elif choice == '22':
-                    demo_object_interaction(controller)
+                    demo_gazebo_scene_manager(controller)
                 
                 elif choice == '23':
+                    demo_object_interaction(controller)
+                
+                elif choice == '24':
+                    demo_mime_performance(controller)
+                
+                elif choice == '25':
                     print("\nExiting demo...")
                     break
                 
                 else:
-                    print("Invalid choice. Please enter 1-23.")
+                    print("Invalid choice. Please enter 1-25.")
                     
             except KeyboardInterrupt:
                 print("\n\nExiting demo...")
